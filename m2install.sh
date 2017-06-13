@@ -52,6 +52,8 @@ BIN_COMPOSER="composer"
 BIN_MYSQL="mysql"
 BIN_GIT="git"
 
+SQL_ERROR_FILE="/dev/null"
+
 BACKEND_FRONTNAME="admin"
 ADMIN_NAME="admin"
 ADMIN_PASSWORD="123123q"
@@ -249,7 +251,7 @@ function mysqlQuery()
         printf "${1}\n"
     fi
 
-    SQLQUERY_RESULT=$($BIN_MYSQL -h$DB_HOST -u$DB_USER $P_DB_PASS -D $DB_NAME -e "$1" 2>/dev/null)
+    SQLQUERY_RESULT=$($BIN_MYSQL -h$DB_HOST -u$DB_USER $P_DB_PASS -D $DB_NAME -e "$1" 2>$SQL_ERROR_FILE)
 }
 
 function generateDBName()
@@ -554,12 +556,12 @@ EOF
 
 function dropDB()
 {
-    mysqladmin --force -h$DB_HOST -u"$DB_USER" $P_DB_PASS drop $DB_NAME &>/dev/null
+    mysqladmin --force -h$DB_HOST -u"$DB_USER" $P_DB_PASS drop $DB_NAME &>$SQL_ERROR_FILE
 }
 
 function createNewDB()
 {
-    mysqladmin --force -h$DB_HOST -u"$DB_USER" $P_DB_PASS create $DB_NAME 2>/dev/null
+    mysqladmin --force -h$DB_HOST -u"$DB_USER" $P_DB_PASS create $DB_NAME 2>$SQL_ERROR_FILE
 }
 
 function tuneAdminSessionLifetime()
@@ -587,7 +589,7 @@ function restore_db()
         | sed -e 's/TRIGGER[ ][\`][A-Za-z0-9_]*[\`][.]/TRIGGER /' \
         | sed -e 's/AFTER[ ]\(INSERT\)\{0,1\}\(UPDATE\)\{0,1\}\(DELETE\)\{0,1\}[ ]ON[ ][\`][A-Za-z0-9_]*[\`][.]/AFTER \1\2\3 ON /' \
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password' \
-        | $BIN_MYSQL -h$DB_HOST -u$DB_USER $P_DB_PASS --force $DB_NAME 2>/dev/null)
+        | $BIN_MYSQL -h$DB_HOST -u$DB_USER $P_DB_PASS --force $DB_NAME 2>$SQL_ERROR_FILE)
 }
 
 function restore_code()
