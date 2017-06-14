@@ -234,7 +234,7 @@ function getStripComponentsValue()
 {
     local stripComponents=
     local slashCount=
-    slashCount=$(tar -tf "$1" | grep pub/index.php | grep -v vendor | sed 's/[.][/]pub[/]index[.]php//' | sed 's/pub[/]index[.]php//' | tr -cd '/' | wc -c)
+    slashCount=$(tar -tf "$1" | grep -v vendor | fgrep pub/index.php | sed 's/pub[/]index[.]php//' | sort | head -1 | tr -cd '/' | wc -c)
 
     if [[ "$slashCount" -gt 0 ]]
     then
@@ -266,6 +266,8 @@ function generateDBName()
             DB_NAME=${DEV_DB_PREFIX}$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]')
         fi
     fi
+
+    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
 }
 
 function prepareBasePath()
@@ -472,7 +474,7 @@ function loadConfigFile()
     local filePath=
     local configPaths=("$@")
 
-    for filePath in ${configPaths[@]}
+    for filePath in "${configPaths[@]}"
     do
         if [ -f "${filePath}" ]
         then
@@ -765,9 +767,10 @@ function updateMagentoEnvFile()
 
     if [ -f app/etc/env.php.merchant ]
     then
-        _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
-        if [ -z "${_key}" ]
+        if grep key app/etc/env.php.merchant | grep -q "[\'][,]"
         then
+            _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
+        else
             _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
         fi
         _date=$(grep date app/etc/env.php.merchant)
@@ -1224,7 +1227,12 @@ function afterInstall()
     then
         setProductionMode
     fi
-    tuneAdminSessionLifetime
+    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$(getScriptDirectory)/post-deploy" ]
+    then
+        printString "==> Run the post deploy $(getScriptDirectory)/post-deploy"
+        . "$(getScriptDirectory)/post-deploy";
+        printString "==> Post deploy script has been finished"
+    fi
     setFilesystemPermission
 }
 
@@ -1260,8 +1268,11 @@ Options:
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    --restore-table                      Restore only the specific table from DB dumps
+    --debug                              Enable debug mode
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1318,6 +1329,9 @@ function processOptions()
             --quiet)
                 VERBOSE=0
             ;;
+            --skip-post-deploy)
+                setRequest skipPostDeploy 1
+            ;;
             -h|--help)
                 printUsage
                 exit
@@ -1330,6 +1344,11 @@ function processOptions()
             --db-dump)
                 checkArgumentHasValue "$1" "$2"
                 setRequest dbdump "$2"
+                shift
+            ;;
+            --restore-table)
+                checkArgumentHasValue "$1" "$2"
+                setRequest restoreTableName "$2"
                 shift
             ;;
             --step)
@@ -1375,6 +1394,14 @@ function magentoDeployDumpsAction()
     addStep "restore_db"
     addStep "configure_db"
     addStep "validateDeploymentFromDumps"
+}
+
+function restoreTableAction()
+{
+    runCommand "{ echo 'SET FOREIGN_KEY_CHECKS=0;';
+       echo 'TRUNCATE ${DB_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
+       zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
+       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME"
 }
 
 function magentoCustomStepsAction()
