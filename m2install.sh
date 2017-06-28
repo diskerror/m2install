@@ -38,7 +38,7 @@ USE_SAMPLE_DATA=
 EE_PATH=magento2ee
 INSTALL_EE=
 CONFIG_NAME=.m2install.conf
-USE_WIZARD=1
+USE_WIZARD=0
 
 GIT_CE_REPO="git@github.com:magento/magento2.git"
 GIT_EE_REPO=
@@ -193,7 +193,7 @@ function getRequest()
         return 0
     fi
     printf '\n'
-    return 0
+    return 1
 }
 
 function runCommand()
@@ -612,6 +612,7 @@ function configure_files()
 
 function configure_db()
 {
+    copyCoreConfig
     updateBaseUrl
     clearBaseLinks
     clearCookieDomain
@@ -661,6 +662,11 @@ function validateDeploymentFromDumps()
     fi
 }
 
+function copyCoreConfig()
+{
+    mysqlQuery "CREATE TABLE IF NOT EXISTS ${TBL_PREFIX}core_config_data_merchant AS SELECT * FROM ${TBL_PREFIX}core_config_data"
+}
+
 function updateBaseUrl()
 {
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET value = '${BASE_URL}' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')"
@@ -678,17 +684,17 @@ function clearCookieDomain()
 
 function clearSslFlag()
 {
-    mysqlQuery "UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
 }
 
 function clearCustomAdmin()
 {
     mysqlQuery "DELETE FROM ${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom'"
-    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET `value` = '0' WHERE path = 'admin/url/use_custom'"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery "DELETE FROM ${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
-    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET `value` = '0' WHERE path = 'admin/url/use_custom_path'"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom_path'"
 
-    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET `value` = '1' WHERE `path` = 'system/full_page_cache/caching_application'"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '1' WHERE \`path\` = 'system/full_page_cache/caching_application'"
 }
 
 function resetAdminPassword()
@@ -1227,10 +1233,10 @@ function afterInstall()
     then
         setProductionMode
     fi
-    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$(getScriptDirectory)/post-deploy" ]
+    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "${CURRENT_DIR_NAME}/post-deploy" ]
     then
-        printString "==> Run the post deploy $(getScriptDirectory)/post-deploy"
-        . "$(getScriptDirectory)/post-deploy";
+        printString "==> Run the post deploy ${CURRENT_DIR_NAME}/post-deploy"
+        . "${CURRENT_DIR_NAME}/post-deploy";
         printString "==> Post deploy script has been finished"
     fi
     setFilesystemPermission
@@ -1399,7 +1405,7 @@ function magentoDeployDumpsAction()
 function restoreTableAction()
 {
     runCommand "{ echo 'SET FOREIGN_KEY_CHECKS=0;';
-       echo 'TRUNCATE ${DB_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
+       echo 'TRUNCATE ${DB_NAME}.${TBL_PREFIX}$(getRequest restoreTableName);';
        zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME"
 }
