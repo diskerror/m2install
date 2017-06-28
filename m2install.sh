@@ -21,7 +21,8 @@
 if [[ -f ~/.profile ]] ; then shopt -s expand_aliases ; source ~/.profile ; fi
 
 VERBOSE=1
-CURRENT_DIR_NAME=$(basename "$(pwd)")
+WORKING_DIRECTORY_PATH="$(pwd)"
+CURRENT_DIR_NAME=$(basename "$WORKING_DIRECTORY_PATH")
 STEPS=()
 
 HTTP_HOST=http://web2.sparta.corp.magento.com/dev/${USER}/
@@ -40,6 +41,8 @@ INSTALL_EE=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=0
 
+USE_GIT_WORKTREE=0
+# Use path to local directory in the following local variables for using git-worktree.
 GIT_CE_REPO="git@github.com:magento/magento2.git"
 GIT_EE_REPO=
 
@@ -69,7 +72,7 @@ P_DB_PASS=
 
 function printVersion()
 {
-    printString "1.0.2"
+    printString "1.1"
 }
 
 function checkForTools()
@@ -292,7 +295,7 @@ function initQuietMode()
 
     BIN_MAGE="${BIN_MAGE} --quiet"
     BIN_COMPOSER="${BIN_COMPOSER} --quiet"
-    BIN_GIT="${BIN_GIT} --quiet"
+    BIN_GIT="$BIN_GIT --quiet"
 
     FORCE=1
 }
@@ -1064,7 +1067,7 @@ function downloadSourceCode()
 {
     if [ "$(ls -A ./)" ]
     then
-        printError "Can't download source code from ${SOURCE} since current directory doesn't empty."
+        printError "Can't download source code from ${SOURCE} since current directory isn't empty."
         printError "You can remove all files from current directory using next command:"
         printError "ls -A | xargs rm -rf"
         exit 1
@@ -1135,15 +1138,29 @@ function showWizzardGit()
 
 function gitClone()
 {
-    runCommand "${BIN_GIT} clone $GIT_CE_REPO ."
-    runCommand "${BIN_GIT} checkout $MAGENTO_VERSION"
-
-    if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
+    if [[ $USE_GIT_WORKTREE ]]
     then
-        runCommand "${BIN_GIT} clone $GIT_EE_REPO $EE_PATH"
-        runCommand "cd ${EE_PATH}"
-        runCommand "${BIN_GIT} checkout $MAGENTO_VERSION"
-        runCommand "cd .."
+        runCommand "cd $GIT_CE_REPO"
+        runCommand "$BIN_GIT worktree add '$WORKING_DIRECTORY_PATH' $MAGENTO_VERSION"
+
+        if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
+        then
+            runCommand "cd $GIT_EE_REPO"
+            runCommand "$BIN_GIT worktree add '${WORKING_DIRECTORY_PATH}/${EE_PATH}' $MAGENTO_VERSION"
+        fi
+
+        runCommand "cd '$WORKING_DIRECTORY_PATH'"
+    else
+        runCommand "$BIN_GIT clone $GIT_CE_REPO ."
+        runCommand "$BIN_GIT checkout $MAGENTO_VERSION"
+
+        if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
+        then
+            runCommand "$BIN_GIT clone $GIT_EE_REPO $EE_PATH"
+            runCommand "cd $EE_PATH"
+            runCommand "$BIN_GIT checkout $MAGENTO_VERSION"
+            runCommand "cd .."
+        fi
     fi
 }
 
@@ -1424,7 +1441,7 @@ function main()
     loadConfigFile $(getConfigFiles)
     processOptions "$@"
     initQuietMode
-    printString Current Directory: "$(pwd)"
+    printString "Current Directory: ${WORKING_DIRECTORY_PATH}"
     printString "Configuration loaded from: $(getConfigFiles)"
     checkForTools
 
