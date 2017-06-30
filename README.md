@@ -1,4 +1,4 @@
-# Magento 2 Bash Install/Restore Script 
+# Magento 2 Bash Install/Restore Script
 [![Build Status](https://travis-ci.org/yvoronoy/m2install.svg?branch=master)](https://travis-ci.org/yvoronoy/m2install) [![Code Climate](https://codeclimate.com/github/yvoronoy/m2install/badges/gpa.svg)](https://codeclimate.com/github/yvoronoy/m2install) [![Packagist](https://img.shields.io/packagist/v/yvoronoy/m2install.svg?maxAge=2592000)](https://packagist.org/packages/yvoronoy/m2install) [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/yvoronoy/m2install.svg?maxAge=2592000)](https://github.com/yvoronoy/m2install/pulls?q=is%3Apr+is%3Aclosed) [![GitHub closed issues](https://img.shields.io/github/issues-closed/yvoronoy/m2install.svg?maxAge=2592000)](https://github.com/yvoronoy/m2install/issues?q=is%3Aissue+is%3Aclosed)
 
 This script is designed to simplify the installation process of Magento 2 and rapid deployment of merchant code and DB dumps.
@@ -8,33 +8,28 @@ m2install can be a helpful tool for support teams and teams who often need to in
 The main purpose of this script is run m2install, wait a bit and get a working magento instance.
 Don't waste time on routine operations.
 
-If you have any issues please report them to https://github.com/yvoronoy/m2install/issues
+If you have any issues please report them to https://github.com/rwoodbury/m2install/issues
 
 ## What can m2install exactly do?
- - Can automatically restore backup files created by 
+ - Can automatically restore backup files created by
   - `php bin/magento setup:backup --code --db`
- - Can automatically restore support dumps created by Enterpsie Support Tool 
+ - Can automatically restore support dumps created by Enterpsie Support Tool
   - `php bin/magento support:backup:code (db)`
  - Script can automatically install vanilla magento
 
 ## Installation
 Download latest version by curl
 ```
-curl -o m2install.sh https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install.sh
-```
-
-You can install by composer
-```
-composer require yvoronoy/m2install
+curl -o m2install.sh https://raw.githubusercontent.com/rwoodbury/m2install/master/m2install.sh
 ```
 
 In case you are using `bash completion` you can download completion for this script.
 ```
 #For Linux User
-curl -o /etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install-bash-completion
+curl -o /etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/rwoodbury/m2install/master/m2install-bash-completion
 
 #For OSX User with brew
-curl -o /usr/local/etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install-bash-completion
+curl -o /usr/local/etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/rwoodbury/m2install/master/m2install-bash-completion
 ```
 
 ## Usage
@@ -57,7 +52,7 @@ Options:
 
 ## How to deploy backup/support dumps
 In order to deploy the customer dumps you need:
- 
+
  * Put DB and code dumps to new directory
  * Go to directory and run m2install
 
@@ -79,15 +74,15 @@ To install Magento 2 from composer run m2install with --source composer param
 ## Wizard
 m2install shows you wizard on first run and prompts to save entered values to config file.
 ```
-$ m2install.sh 
-Current Directory: /Users/yvoronoy/Sites/m2/ee202
+$ m2install.sh
+Current Directory: /Users/rwoodbury/Sites/m2/ee202
 Configuration loaded from:
-Enter Server Name of Document Root (default: http://mage2.dev/): 
-Enter Base Path (default: ee202): 
-Enter DB Host (default: localhost): 
-Enter DB User (default: root): 
-Enter DB Password: 
-Enter DB Name (default: root_ee202): 
+Enter Server Name of Document Root (default: http://mage2.dev/):
+Enter Base Path (default: ee202):
+Enter DB Host (default: localhost):
+Enter DB User (default: root):
+Enter DB Password:
+Enter DB Name (default: root_ee202):
 Do you want to install Sample Data (y/N) n
 Enter Path to EE or [nN] to skip EE installation: n
 --------------------------------------------------
@@ -97,7 +92,7 @@ DB NAME: root_ee202
 Sample Data will NOT be installed.
 Magento EE will NOT be installed.
 In order to generate static/di content, add mode param: m2install.sh --mode prod
-Are you sure? [y/N] 
+Are you sure? [y/N]
 ```
 
 ## How to use configuration files
@@ -114,7 +109,7 @@ DB_PASSWORD=dbpassword
 When you first run m2install script, it shows wizard which prompts to save the config file to your home directory.
 
 m2install uses fallback mechanism to find config files recursively from home directory to current directory.
-For example if you want to install magento to directory 
+For example if you want to install magento to directory
 ~/www/m2/ga/magento2ee
 
 you can override config file which is placed in your home directory.

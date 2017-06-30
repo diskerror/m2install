@@ -1068,8 +1068,8 @@ function downloadSourceCode()
     if [ "$(ls -A ./)" ]
     then
         printError "Can't download source code from ${SOURCE} since current directory isn't empty."
-        printError "You can remove all files from current directory using next command:"
-        printError "ls -A | xargs rm -rf"
+        printError 'You can remove all files from current directory using the command:'
+        printError 'rm -rf `ls -1A`'
         exit 1
     fi
     if [ "$SOURCE" == 'composer' ]
