@@ -61,6 +61,8 @@ To install Magento 2 from git repository run m2install with --source git param
  * ```m2install --source git``` or
  * ```m2install -s git```
 
+Repository data can come from a remote source or a local repository using the ```git worktree add``` construct. See parameter names at the start of the install script. These can be preset in your configuration file.
+
 ## How to install Magento 2 using Composer
 To install Magento 2 from composer run m2install with --source composer param
  * ```m2install --source composer``` or
