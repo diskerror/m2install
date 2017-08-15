@@ -42,12 +42,20 @@ Usage: m2install.sh [options]
 Options:
     -h, --help                           Get this help.
     -s, --source (git, composer)         Get source code.
+    -v, --version                        Magento Version from Composer or GIT Branch
+    -b, --new-branch [MDVA-123]          New branch name if using work tree. Parameter is optional.
+                                             If empty then "MDVA-<directory name>" will be used.
+    -d, --sample-data                    Install sample data.
+    --ee                                 Install Enterprise Edition.
     -f, --force                          Install/Restore without any confirmations.
-    --sample-data (yes, no)              Install sample data.
-    --ee-path (/path/to/ee)              Path to Enterprise Edition.
-    --git-branch (branch name)           Specify Git Branch.
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --skip-post-deploy                   Skip the post deploy script if it is exist
+    --step (restore_db restore_code configure_db configure_files configure install_magento)
+                                         Specify step through comma without spaces.
+                                         - Example: $(basename "$0") --step restore_db,configure_db
+    --restore-table                      Restore only the specific table from DB dumps
+    --debug                              Enable debug mode
 ```
 
 ## How to deploy backup/support dumps

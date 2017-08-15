@@ -33,6 +33,7 @@ DB_PASSWORD=
 DEV_DB_PREFIX="${USER}_"
 
 MAGENTO_VERSION=2.1
+NEW_BRANCH=
 
 DB_NAME=
 USE_SAMPLE_DATA=
@@ -413,6 +414,10 @@ function printConfirmation()
     printString "TIMEZONE: ${TIMEZONE}"
     printString "LANGUAGE: ${LANGUAGE}"
     printString "CURRENCY: ${CURRENCY}"
+    if [[ -n "${NEW_BRANCH}" ]]
+    then
+        printString "NEW BRANCH: ${NEW_BRANCH}"
+    fi
 
     if foundSupportBackupFiles
     then
@@ -978,7 +983,7 @@ function runComposerInstall()
     runCommand "${BIN_COMPOSER} install"
 }
 
-function installMagento()
+function install_magento()
 {
     runCommand "rm -rf var/generation/*"
 
@@ -1068,8 +1073,8 @@ function downloadSourceCode()
     if [ "$(ls -A ./)" ]
     then
         printError "Can't download source code from ${SOURCE} since current directory isn't empty."
-        printError 'You can remove all files from current directory using the command:'
-        printError 'rm -rf `ls -1A`'
+        printError "You can remove all files from current directory using next command:"
+        printError "ls -A | xargs rm -rf"
         exit 1
     fi
     if [ "$SOURCE" == 'composer' ]
@@ -1138,27 +1143,32 @@ function showWizzardGit()
 
 function gitClone()
 {
+    if [[ -n "$NEW_BRANCH" ]]
+    then
+        NEW_BRANCH="-b $NEW_BRANCH"
+    fi
+
     if [[ $USE_GIT_WORKTREE ]]
     then
         runCommand "cd $GIT_CE_REPO"
-        runCommand "$BIN_GIT worktree add '$WORKING_DIRECTORY_PATH' $MAGENTO_VERSION"
+        runCommand "$BIN_GIT worktree add $NEW_BRANCH '$WORKING_DIRECTORY_PATH' $MAGENTO_VERSION"
 
         if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
         then
             runCommand "cd $GIT_EE_REPO"
-            runCommand "$BIN_GIT worktree add '${WORKING_DIRECTORY_PATH}/${EE_PATH}' $MAGENTO_VERSION"
+            runCommand "$BIN_GIT worktree add $NEW_BRANCH '${WORKING_DIRECTORY_PATH}/${EE_PATH}' $MAGENTO_VERSION"
         fi
 
         runCommand "cd '$WORKING_DIRECTORY_PATH'"
     else
         runCommand "$BIN_GIT clone $GIT_CE_REPO ."
-        runCommand "$BIN_GIT checkout $MAGENTO_VERSION"
+        runCommand "$BIN_GIT checkout $NEW_BRANCH $MAGENTO_VERSION"
 
         if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
         then
             runCommand "$BIN_GIT clone $GIT_EE_REPO $EE_PATH"
             runCommand "cd $EE_PATH"
-            runCommand "$BIN_GIT checkout $MAGENTO_VERSION"
+            runCommand "$BIN_GIT checkout $NEW_BRANCH $MAGENTO_VERSION"
             runCommand "cd .."
         fi
     fi
@@ -1200,7 +1210,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1
-    local _steps="restore_db restore_code configure_db configure_files configure"
+    local _steps="restore_db restore_code configure_db configure_files configure install_magento"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -1229,8 +1239,8 @@ function prepareSteps()
 
 function addStep()
 {
-  local _step=$1
-  STEPS+=($_step)
+    local _step=$1
+    STEPS+=($_step)
 }
 
 function setProductionMode()
@@ -1285,19 +1295,22 @@ Usage: $(basename "$0") [options]
 Options:
     -h, --help                           Get this help.
     -s, --source (git, composer)         Get source code.
-    -f, --force                          Install/Restore without any confirmations.
-    --sample-data (yes, no)              Install sample data.
+    -v, --version                        Magento Version from Composer or GIT Branch
+    -b, --new-branch [MDVA-123]          New branch name if using work tree. Parameter is optional.
+                                             If empty then "MDVA-<directory name>" will be used.
+    -d, --sample-data                    Install sample data.
     --ee                                 Install Enterprise Edition.
-    -v, --version                        Magento Version - it means: Composer version or GIT Branch
+    -f, --force                          Install/Restore without any confirmations.
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --skip-post-deploy                   Skip the post deploy script if it is exist
-    --step (restore_code,restore_db      Specify step through comma without spaces.
-        configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    --step (restore_db restore_code configure_db configure_files configure install_magento)
+                                         Specify step through comma without spaces.
+                                         - Example: $(basename "$0") --step restore_db,configure_db
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     _________________________________________________________________________________________________
-    --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
+    -e, --ee-path (/path/to/ee)          (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
 }
 
@@ -1312,14 +1325,7 @@ function processOptions()
                 shift
             ;;
             -d|--sample-data)
-                checkArgumentHasValue "$1" "$2"
-                if isInputNegative "$2"
-                then
-                    USE_SAMPLE_DATA=
-                else
-                    USE_SAMPLE_DATA="$2"
-                fi
-                shift
+                USE_SAMPLE_DATA=1
             ;;
             -e|--ee-path)
                 checkArgumentHasValue "$1" "$2"
@@ -1330,10 +1336,13 @@ function processOptions()
             --ee)
                 INSTALL_EE=1
             ;;
-            -b|--git-branch)
+            -b|--new-branch)
                 checkArgumentHasValue "$1" "$2"
-                MAGENTO_VERSION="$2"
-                shift
+                NEW_BRANCH="$2"
+                if [[ "${NEW_BRANCH:0:1}" == "-" || -z "${NEW_BRANCH}" ]]
+                then
+                    NEW_BRANCH='MDVA-'${CURRENT_DIR_NAME}
+                fi
             ;;
             -v|--version)
                 checkArgumentHasValue "$1" "$2"
@@ -1402,7 +1411,7 @@ function magentoInstallAction()
     fi
     addStep "linkEnterpriseEdition"
     addStep "runComposerInstall"
-    addStep "installMagento"
+    addStep "install_magento"
     if [[ "${USE_SAMPLE_DATA}" ]]
     then
         addStep "installSampleData"
