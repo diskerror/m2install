@@ -625,6 +625,8 @@ function configure_db()
     clearBaseLinks
     clearCookieDomain
     clearSslFlag
+    clearAdminSessionLimit
+    clearAdminLogging
     clearCustomAdmin
     resetAdminPassword
 }
@@ -692,7 +694,17 @@ function clearCookieDomain()
 
 function clearSslFlag()
 {
-    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = 0 WHERE path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+}
+
+function clearAdminSessionLimit()
+{
+    mysqlQuery "INSERT INTO ${TBL_PREFIX}core_config_data SET path = 'admin/security/min_time_between_password_reset_requests', \`value\` = 0 ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)"
+}
+
+function clearAdminLogging()
+{
+    mysqlQuery "INSERT INTO ${TBL_PREFIX}core_config_data SET path = 'admin/magento_logging/actions', \`value\` = 'a:0:{}' ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)"
 }
 
 function clearCustomAdmin()
@@ -702,7 +714,7 @@ function clearCustomAdmin()
     mysqlQuery "DELETE FROM ${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom_path'"
 
-    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '1' WHERE \`path\` = 'system/full_page_cache/caching_application'"
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '1' WHERE path = 'system/full_page_cache/caching_application'"
 }
 
 function resetAdminPassword()
@@ -1012,6 +1024,10 @@ function install_magento()
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
     runCommand "$CMD"
+
+    clearAdminSessionLimit
+    clearAdminLogging
+
 }
 
 function addNewGit()
@@ -1341,7 +1357,7 @@ function processOptions()
                 NEW_BRANCH="$2"
                 if [[ "${NEW_BRANCH:0:1}" == "-" || -z "${NEW_BRANCH}" ]]
                 then
-                    NEW_BRANCH='MDVA-'${CURRENT_DIR_NAME}
+                    NEW_BRANCH='MDVA-'$(echo "$CURRENT_DIR_NAME" | tr -cd '[:digit:]')
                 fi
             ;;
             -v|--version)
