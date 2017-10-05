@@ -607,7 +607,7 @@ function restore_code()
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
-    runCommand "mkdir -p var pub/media pub/static"
+    runCommand "mkdir -m 777 -p var pub/media pub/static"
 }
 
 function configure_files()
