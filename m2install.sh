@@ -713,6 +713,8 @@ function clearCustomAdmin()
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery "DELETE FROM ${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom_path'"
+    
+    mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '31536000' WHERE path = 'admin/security/session_lifetime'"
 
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '1' WHERE path = 'system/full_page_cache/caching_application'"
 }
