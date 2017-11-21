@@ -42,7 +42,7 @@ INSTALL_EE=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=0
 
-USE_GIT_WORKTREE=0
+USE_GIT_WORKTREE=1
 # Use path to local directory in the following local variables for using git-worktree.
 GIT_CE_REPO="git@github.com:magento/magento2.git"
 GIT_EE_REPO=
@@ -713,7 +713,7 @@ function clearCustomAdmin()
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery "DELETE FROM ${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '0' WHERE path = 'admin/url/use_custom_path'"
-    
+
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '31536000' WHERE path = 'admin/security/session_lifetime'"
 
     mysqlQuery "UPDATE ${TBL_PREFIX}core_config_data SET \`value\` = '1' WHERE path = 'system/full_page_cache/caching_application'"
@@ -1042,8 +1042,6 @@ function addNewGit()
 
     printString "Wrapping deployment with local-only git repository."
 
-    (
-
     # backup merchant's file
     if [[ -e '.gitignore' ]]
     then
@@ -1064,6 +1062,7 @@ function addNewGit()
 *.zip
 *.tar
 .DS_Store
+._*
 
 GIT_IGNORE_EOF
 
@@ -1078,12 +1077,10 @@ GIT_IGNORE_EOF
     fi
 
     $FIND_REGEX_TYPE ! -regex \
-        '\./\.git/.*|\./media/.*|\./var/.*|.*\.svn/.*|\./\.idea/.*|.*\.gz|.*\.tgz|.*\.bz|.*\.bz2|.*\.tbz2|.*\.tbz|.*\.zip|.*\.tar|.*DS_Store' \
+        '\./\.git/.*|\./media/.*|\./var/.*|.*\.svn/.*|\./\.idea/.*|.*\.gz|.*\.tgz|.*\.bz|.*\.bz2|.*\.tbz2|.*\.tbz|.*\.zip|.*\.tar|.*DS_Store|\._.*' \
         -print0 | xargs -0 git add -f
 
     git commit -m 'initial merchant deployment' >/dev/null 2>&1
-
-    )&
 }
 
 function downloadSourceCode()
@@ -1169,12 +1166,12 @@ function gitClone()
     if [[ $USE_GIT_WORKTREE ]]
     then
         runCommand "cd $GIT_CE_REPO"
-        runCommand "$BIN_GIT worktree add $NEW_BRANCH '$WORKING_DIRECTORY_PATH' $MAGENTO_VERSION"
+        runCommand "$BIN_GIT worktree add -f $NEW_BRANCH '$WORKING_DIRECTORY_PATH' $MAGENTO_VERSION"
 
         if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
         then
             runCommand "cd $GIT_EE_REPO"
-            runCommand "$BIN_GIT worktree add $NEW_BRANCH '${WORKING_DIRECTORY_PATH}/${EE_PATH}' $MAGENTO_VERSION"
+            runCommand "$BIN_GIT worktree add -f $NEW_BRANCH '${WORKING_DIRECTORY_PATH}/${EE_PATH}' $MAGENTO_VERSION"
         fi
 
         runCommand "cd '$WORKING_DIRECTORY_PATH'"
@@ -1440,7 +1437,6 @@ function magentoDeployDumpsAction()
 {
     addStep "restore_code"
     addStep "configure_files"
-    addStep "addNewGit"
     addStep "restore_db"
     addStep "configure_db"
     addStep "validateDeploymentFromDumps"
@@ -1496,6 +1492,8 @@ function main()
         magentoInstallAction
     fi
     addStep "afterInstall"
+
+    addStep "addNewGit"
 
     executeSteps "${STEPS[@]}"
 
