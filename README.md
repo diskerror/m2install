@@ -16,6 +16,10 @@ If you have any issues please report them to https://github.com/rwoodbury/m2inst
  - Can automatically restore support dumps created by Enterpsie Support Tool
   - `php bin/magento support:backup:code (db)`
  - Script can automatically install vanilla magento
+ 
+## What does this fork add?
+ - Wraps deployed dumps with a local `git` repository.
+ - When using `-s git` it will pull from local `git` repository as a worktree.
 
 ## Installation
 Download latest version by curl
